@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { View, ActivityIndicator } from 'react-native'
 import { useAuthStore } from './src/context/authStore'
 import LoginScreen from './src/screens/LoginScreen'
 import AccueilScreen from './src/screens/AccueilScreen'
-import { theme } from './src/styles/theme'
+import SplashScreen from './src/screens/SplashScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -19,11 +18,7 @@ export default function App() {
   }, [restaurerSession])
 
   if (!pretAuDemarrage) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.bgPage }}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
-      </View>
-    )
+    return <SplashScreen />
   }
 
   return (
