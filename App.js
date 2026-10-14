@@ -5,9 +5,18 @@ import { useAuthStore } from './src/context/authStore'
 import { initialiserDb } from './src/db/database'
 import LoginScreen from './src/screens/LoginScreen'
 import AccueilScreen from './src/screens/AccueilScreen'
+import InspectionsScreen from './src/screens/InspectionsScreen'
 import SplashScreen from './src/screens/SplashScreen'
+import { theme } from './src/styles/theme'
 
 const Stack = createNativeStackNavigator()
+
+const optionsEntete = {
+  headerShown: true,
+  headerStyle: { backgroundColor: theme.colors.navy900 },
+  headerTintColor: '#fff',
+  headerTitleStyle: { fontWeight: '700' },
+}
 
 export default function App() {
   const [dbPrete, setDbPrete] = useState(false)
@@ -16,7 +25,6 @@ export default function App() {
   const restaurerSession = useAuthStore((s) => s.restaurerSession)
 
   useEffect(() => {
-    // Base locale + session restaurée en parallèle -> démarrage plus rapide.
     Promise.all([initialiserDb(), restaurerSession()]).then(() => setDbPrete(true))
   }, [restaurerSession])
 
@@ -28,7 +36,14 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {estConnecte ? (
-          <Stack.Screen name="Accueil" component={AccueilScreen} />
+          <>
+            <Stack.Screen name="Accueil" component={AccueilScreen} />
+            <Stack.Screen
+              name="Inspections"
+              component={InspectionsScreen}
+              options={{ ...optionsEntete, title: 'Mes inspections' }}
+            />
+          </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}

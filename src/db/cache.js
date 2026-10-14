@@ -1,12 +1,5 @@
 import { getDb } from './database'
 
-/**
- * Cache local du référentiel consommé pendant une inspection : le
- * formulaire dynamique d'un type d'équipement, et la liste des équipements
- * disponibles. Alimenté quand l'app est en ligne (à chaque consultation),
- * relu quand elle ne l'est pas.
- */
-
 export async function sauvegarderFormulaire(typeEquipementId, formulaire) {
   const db = await getDb()
   await db.runAsync(
@@ -45,4 +38,11 @@ export async function listerEquipementsCache() {
   const db = await getDb()
   const lignes = await db.getAllAsync(`SELECT json FROM equipements_cache ORDER BY id DESC`)
   return lignes.map((l) => JSON.parse(l.json))
+}
+
+/** Un seul équipement par id — utilisé par l'écran d'inspection pour retrouver son type. */
+export async function lireEquipementCache(id) {
+  const db = await getDb()
+  const ligne = await db.getFirstAsync(`SELECT json FROM equipements_cache WHERE id = ?`, [id])
+  return ligne ? JSON.parse(ligne.json) : null
 }
