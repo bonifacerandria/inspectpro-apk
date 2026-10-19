@@ -1,14 +1,20 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native'
+import { useState } from 'react'
+import { View, Text, TouchableOpacity, Image, Modal, StyleSheet, Alert } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { theme } from '../styles/theme'
+import { conserverPhoto } from '../utils/stockagePhotos'
+import { supprimerPhotoLocale } from '../db/photosLocales'
 
 /**
- * Bouton « prendre une photo » + miniatures des photos déjà prises
- * (locales, donc visibles même avant synchro). `onPrise(uri)` est appelé
- * avec le fichier capturé ; l'écran parent l'enregistre via
- * ajouterPhotoLocale (qui met aussi l'upload en file de synchro).
+ * Prise de photo + miniatures. La photo est copiée dans le stockage
+ * permanent AVANT d'être transmise à `onPrise(uri)`. Un tap sur une
+ * miniature l'agrandit ; une photo non synchronisée (pastille orange)
+ * peut être supprimée depuis l'aperçu.
  */
 export default function ChampPhoto({ photos = [], modifiable, onPrise }) {
+  const [ouverte, setOuverte] = useState(null)
+  const [supprimees, setSupprimees] = useState([]) // masquage immédiat, sans dépendre d'un rechargement parent
+
   async function prendre() {
     const perm = await ImagePicker.requestCameraPermissionsAsync()
     if (!perm.granted) {
@@ -17,23 +23,56 @@ export default function ChampPhoto({ photos = [], modifiable, onPrise }) {
     }
     const resultat = await ImagePicker.launchCameraAsync({ quality: 0.7 })
     if (!resultat.canceled && resultat.assets?.[0]?.uri) {
-      onPrise(resultat.assets[0].uri)
+      onPrise(await conserverPhoto(resultat.assets[0].uri))
     }
   }
 
+  function demanderSuppression(photo) {
+    Alert.alert('Supprimer cette photo ?', 'Elle ne sera pas envoyée au serveur.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer', style: 'destructive',
+        onPress: async () => {
+          if (await supprimerPhotoLocale(photo.id_local)) {
+            setSupprimees((s) => [...s, photo.id_local])
+            setOuverte(null)
+          }
+        },
+      },
+    ])
+  }
+
+  const visibles = photos.filter((p) => !supprimees.includes(p.id_local))
+
   return (
     <View style={styles.ligne}>
-      {photos.map((p) => (
-        <View key={p.id_local} style={styles.miniature}>
+      {visibles.map((p) => (
+        <TouchableOpacity key={p.id_local} style={styles.miniature} onPress={() => setOuverte(p)}>
           <Image source={{ uri: p.uri_fichier }} style={styles.image} />
           {!p.synchronise && <View style={styles.pastille} />}
-        </View>
+        </TouchableOpacity>
       ))}
       {modifiable && (
         <TouchableOpacity style={styles.ajout} onPress={prendre}>
           <Text style={{ fontSize: 18 }}>📷</Text>
         </TouchableOpacity>
       )}
+
+      <Modal visible={!!ouverte} transparent animationType="fade" onRequestClose={() => setOuverte(null)}>
+        <View style={styles.fond}>
+          {ouverte && <Image source={{ uri: ouverte.uri_fichier }} style={styles.grande} resizeMode="contain" />}
+          <View style={styles.actions}>
+            {ouverte && !ouverte.synchronise && modifiable && (
+              <TouchableOpacity style={[styles.bouton, { backgroundColor: theme.colors.danger }]} onPress={() => demanderSuppression(ouverte)}>
+                <Text style={styles.boutonTexte}>Supprimer</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.bouton} onPress={() => setOuverte(null)}>
+              <Text style={styles.boutonTexte}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -44,4 +83,9 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%', borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.colors.border },
   pastille: { position: 'absolute', top: -3, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: theme.colors.warning },
   ajout: { width: 52, height: 52, borderRadius: theme.radius.sm, borderWidth: 1.4, borderStyle: 'dashed', borderColor: theme.colors.borderStrong, alignItems: 'center', justifyContent: 'center' },
+  fond: { flex: 1, backgroundColor: 'rgba(10,22,40,0.94)', justifyContent: 'center', padding: 16 },
+  grande: { width: '100%', height: '75%' },
+  actions: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 16 },
+  bouton: { backgroundColor: theme.colors.accent, borderRadius: theme.radius.md, paddingHorizontal: 22, paddingVertical: 11 },
+  boutonTexte: { color: '#fff', fontWeight: '700' },
 })
