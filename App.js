@@ -9,6 +9,7 @@ import InspectionsScreen from './src/screens/InspectionsScreen'
 import EquipementsScreen from './src/screens/EquipementsScreen'
 import InspectionDetailScreen from './src/screens/InspectionDetailScreen'
 import SignaturesScreen from './src/screens/SignaturesScreen'
+import SynchroScreen from './src/screens/SynchroScreen'
 import SplashScreen from './src/screens/SplashScreen'
 import { theme } from './src/styles/theme'
 
@@ -43,6 +44,7 @@ export default function App() {
             <Stack.Screen name="Equipements" component={EquipementsScreen} options={entete('Choisir un équipement')} />
             <Stack.Screen name="InspectionDetail" component={InspectionDetailScreen} options={entete('Inspection')} />
             <Stack.Screen name="Signatures" component={SignaturesScreen} options={entete('Signatures')} />
+            <Stack.Screen name="Synchro" component={SynchroScreen} options={entete('Synchronisation')} />
           </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />

@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AppState } from 'react-native'
 import { useReseau } from './useReseau'
 import { synchroniser } from '../services/syncEngine'
 import { compterEnAttente } from '../db/inspectionsLocales'
 
 /**
- * - Déclenche la synchro automatiquement dès que le réseau REVIENT (pas à
- *   chaque render, seulement sur la transition hors-ligne -> en ligne).
- * - Expose `lancerSynchro()` pour le bouton manuel.
- * - Expose `enAttente` (nombre d'actions non synchronisées) pour un badge.
+ * Synchronisation automatique :
+ *  - au retour du réseau (transition hors-ligne -> en ligne) ;
+ *  - quand l'app revient au premier plan ;
+ *  - toutes les 60 s tant qu'il reste des éléments à envoyer ;
+ * + bouton manuel (lancerSynchro) et compteur rafraîchi toutes les 4 s
+ * (le compteur est partagé entre écrans via la base locale).
  */
 export function useSyncAuto() {
   const enLigne = useReseau()
@@ -31,14 +34,30 @@ export function useSyncAuto() {
 
   useEffect(() => {
     rafraichirCompteur()
+    const id = setInterval(rafraichirCompteur, 4000)
+    return () => clearInterval(id)
   }, [rafraichirCompteur])
 
   useEffect(() => {
-    if (enLigne && etaitHorsLigne.current) {
-      lancerSynchro() // retour réseau après une coupure -> synchro auto
-    }
+    if (enLigne && etaitHorsLigne.current) lancerSynchro()
     etaitHorsLigne.current = !enLigne
   }, [enLigne, lancerSynchro])
+
+  useEffect(() => {
+    const abonnement = AppState.addEventListener('change', (etat) => {
+      if (etat === 'active') {
+        rafraichirCompteur()
+        if (enLigne) lancerSynchro()
+      }
+    })
+    return () => abonnement.remove()
+  }, [enLigne, lancerSynchro, rafraichirCompteur])
+
+  useEffect(() => {
+    if (!enLigne || enAttente === 0) return
+    const id = setInterval(lancerSynchro, 60000)
+    return () => clearInterval(id)
+  }, [enLigne, enAttente, lancerSynchro])
 
   return { enAttente, synchroEnCours, lancerSynchro, enLigne, rafraichirCompteur }
 }

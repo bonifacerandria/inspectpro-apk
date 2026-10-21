@@ -1,11 +1,13 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useAuthStore } from '../context/authStore'
+import { useSyncAuto } from '../context/useSyncAuto'
 import { theme } from '../styles/theme'
 import BandeauSynchro from '../components/BandeauSynchro'
 
 export default function AccueilScreen({ navigation }) {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
+  const { enAttente } = useSyncAuto()
 
   return (
     <View style={styles.conteneur}>
@@ -17,6 +19,10 @@ export default function AccueilScreen({ navigation }) {
 
         <TouchableOpacity style={styles.boutonPrincipal} onPress={() => navigation.navigate('Inspections')}>
           <Text style={styles.boutonPrincipalTexte}>🔍 Mes inspections</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.bouton} onPress={() => navigation.navigate('Synchro')}>
+          <Text style={styles.boutonTexte}>🔄 Synchronisation{enAttente > 0 ? ` (${enAttente} en attente)` : ''}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.bouton} onPress={logout}>
